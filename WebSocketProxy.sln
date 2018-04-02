@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ws-proxy", "ws-proxy\ws-pro
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ws-proxy-server", "ws-proxy-server\ws-proxy-server.csproj", "{02383C54-D08B-4481-AB46-A599F07DF76A}"
 EndProject
-Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{6652E10A-56E8-4B92-B27B-121EF08A07A0}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,10 +21,6 @@ Global
 		{02383C54-D08B-4481-AB46-A599F07DF76A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{02383C54-D08B-4481-AB46-A599F07DF76A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{02383C54-D08B-4481-AB46-A599F07DF76A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6652E10A-56E8-4B92-B27B-121EF08A07A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6652E10A-56E8-4B92-B27B-121EF08A07A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6652E10A-56E8-4B92-B27B-121EF08A07A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6652E10A-56E8-4B92-B27B-121EF08A07A0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
