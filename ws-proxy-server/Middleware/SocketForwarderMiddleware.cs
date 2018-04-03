@@ -72,6 +72,7 @@ namespace WebSocketProxy.Server
             do
             {
                 read = await sock.ReceiveAsync(readSegment, SocketFlags.None).ConfigureAwait(false);
+
                 if (read > 0)
                 {
                     logger.LogTrace("Read {0} bytes from TCP socket.", read);
