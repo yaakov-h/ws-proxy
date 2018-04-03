@@ -63,4 +63,4 @@ spec:
               protocol: TCP
 ```
 
-Creating a corresponding Service and Ingress are left as an excercise for the reader.
+Creating a corresponding Secret, Service and Ingress are left as an excercise for the reader.
