@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
@@ -9,7 +7,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -33,13 +30,24 @@ namespace ws_proxy_server
 
             app.UseWebSockets();
 
-            app.Use(HandleRequestAsync);
+            app.UseMiddleware<SocketForwarderMiddleware>();
+        }
+    }
+
+    class SocketForwarderMiddleware
+    {
+
+        public SocketForwarderMiddleware(ILogger<SocketForwarderMiddleware> logger, RequestDelegate next)
+        {
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            this.next = next ?? throw new ArgumentNullException(nameof(next));
         }
 
-        static async Task HandleRequestAsync(HttpContext context, Func<Task> next)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILogger<HttpContext>>();
+        readonly ILogger<SocketForwarderMiddleware> logger;
+        readonly RequestDelegate next;
 
+        public async Task InvokeAsync(HttpContext context)
+        {
             var wsf = context.Features.Get<IHttpWebSocketFeature>();
             logger.LogInformation("WebSockets are present: {0}", wsf != null ? bool.TrueString : bool.FalseString);
             logger.LogInformation("WebSockets request: {0}", wsf?.IsWebSocketRequest ?? false ? bool.TrueString : bool.FalseString);
@@ -47,7 +55,7 @@ namespace ws_proxy_server
             if (!context.WebSockets.IsWebSocketRequest)
             {
                 logger.LogInformation("Non-websocket request from {0}:{1} to {2}", context.Connection.RemoteIpAddress, context.Connection.RemotePort, context.Request.Path);
-                await next().ConfigureAwait(false);
+                await next(context).ConfigureAwait(false);
                 return;
             }
 
@@ -83,14 +91,14 @@ namespace ws_proxy_server
 
             await sock.ConnectAsyncTask(endPoint).ConfigureAwait(false);
 
-            var uploadTask = CopyToAsync(logger, sock, ws);
-            var downloadTask = CopyToAsync(logger, ws, sock);
+            var uploadTask = CopyToAsync(sock, ws);
+            var downloadTask = CopyToAsync(ws, sock);
 
             await Task.WhenAll(uploadTask, downloadTask).ConfigureAwait(false);
 
         }
 
-        static async Task CopyToAsync(ILogger logger, Socket sock, WebSocket ws)
+        async Task CopyToAsync(Socket sock, WebSocket ws)
         {
             var buffer = new byte[1024];
             var readSegment = new ArraySegment<byte>(buffer, 0, buffer.Length);
@@ -108,7 +116,7 @@ namespace ws_proxy_server
             while (read > 0);
         }
 
-        static async Task CopyToAsync(ILogger logger, WebSocket ws, Socket sock)
+        async Task CopyToAsync(WebSocket ws, Socket sock)
         {
             var buffer = new byte[1024];
             var readSegment = new ArraySegment<byte>(buffer, 0, buffer.Length);
