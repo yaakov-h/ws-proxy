@@ -5,6 +5,7 @@ using System.Net.WebSockets;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace WebSocketProxy.Server
@@ -12,52 +13,41 @@ namespace WebSocketProxy.Server
     class SocketForwarderMiddleware
     {
 
-        public SocketForwarderMiddleware(ILogger<SocketForwarderMiddleware> logger, RequestDelegate next)
+        public SocketForwarderMiddleware(ILogger<SocketForwarderMiddleware> logger, IConfiguration configuration, RequestDelegate next)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            this.configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             this.next = next ?? throw new ArgumentNullException(nameof(next));
         }
 
         readonly ILogger<SocketForwarderMiddleware> logger;
+        readonly IConfiguration configuration;
         readonly RequestDelegate next;
 
         public async Task InvokeAsync(HttpContext context)
         {
             var wsf = context.Features.Get<IHttpWebSocketFeature>();
-            logger.LogInformation("WebSockets are present: {0}", wsf != null ? bool.TrueString : bool.FalseString);
-            logger.LogInformation("WebSockets request: {0}", wsf?.IsWebSocketRequest ?? false ? bool.TrueString : bool.FalseString);
 
             if (!context.WebSockets.IsWebSocketRequest)
             {
-                logger.LogInformation("Non-websocket request from {0}:{1} to {2}", context.Connection.RemoteIpAddress, context.Connection.RemotePort, context.Request.Path);
+                logger.LogDebug("Non-websocket request from {0}:{1} to {2}", context.Connection.RemoteIpAddress, context.Connection.RemotePort, context.Request.Path);
                 await next(context).ConfigureAwait(false);
                 return;
             }
 
-            var targetHost = context.Request.GetSingleHeaderValue("WS-Proxy-Target-Host");
-            var targetPortString = context.Request.GetSingleHeaderValue("WS-Proxy-Target-Port");
+            var targetHost = configuration["WsProxy:TargetHost"];
+            var targetPort = int.Parse(configuration["WsProxy:TargetPort"]);
+            var expectedPassword = configuration["WsProxy:Password"];
 
-            if (targetHost == null || targetPortString == null)
+            var password = context.Request.GetAuthorizationPassword();
+            if (!string.Equals(password, expectedPassword, StringComparison.Ordinal))
             {
-                logger.LogWarning("Missing one or more WS-Proxy-Targets headers.");
-                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                return;
-
-            }
-
-            if (!int.TryParse(targetPortString, out var targetPort) || targetPort <= 0 || targetPort > ushort.MaxValue)
-            {
-                logger.LogWarning("Target port '{0}' is invalid or out of range.", targetPortString);
-                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                context.Response.Headers["Www-Authenticate"] = "Password realm=\"ws-proxy\"";
+                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 return;
             }
 
             var endPoint = IPAddress.TryParse(targetHost, out var address) ? (EndPoint)new IPEndPoint(address, targetPort) : new DnsEndPoint(targetHost, targetPort);
-
-            //var configuration = context.RequestServices.GetRequiredService<IConfiguration>();
-            //var targetHost = configuration["PROXY_TARGET_HOST"];
-            //var targetPort = int.Parse(configuration["PROXY_TARGET_PORT"]);
-            //var endPoint = IPAddress.TryParse(targetHost, out var address) ? (EndPoint)new IPEndPoint(address, targetPort) : new DnsEndPoint(targetHost, targetPort);
 
             var ws = await context.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false);
             var sock = new Socket(SocketType.Stream, ProtocolType.Tcp);

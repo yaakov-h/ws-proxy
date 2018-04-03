@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Globalization;
+using System.ComponentModel;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -31,8 +32,8 @@ namespace WebSocketProxy
             {
                 cancellationToken.Register(socket.Close);
 
-                ws.Options.SetRequestHeader("WS-Proxy-Target-Host", parameters.TargetHost);
-                ws.Options.SetRequestHeader("WS-Proxy-Target-Port", parameters.TargetPort.ToString(CultureInfo.InvariantCulture));
+                var encodedPassword = Convert.ToBase64String(Encoding.UTF8.GetBytes(parameters.Password));
+                ws.Options.SetRequestHeader("Authorization", $"Password {encodedPassword}");
 
                 logger.LogTrace("Connecting to {0}", parameters.ProxyServerAddress);
 
@@ -44,6 +45,16 @@ namespace WebSocketProxy
                 var downloadTask = CopyToAsync(ws, socket, cancellationToken);
 
                 await Task.WhenAny(uploadTask, downloadTask).ConfigureAwait(false);
+
+                try
+                {
+                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Connection completed.", cancellationToken).ConfigureAwait(false);
+                }
+                catch (Win32Exception)
+                {
+                }
+
+                await Task.WhenAll(uploadTask, downloadTask).ConfigureAwait(false);
             }
         }
 

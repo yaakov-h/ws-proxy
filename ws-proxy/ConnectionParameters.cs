@@ -2,15 +2,13 @@
 {
     readonly struct ConnectionParameters
     {
-        public ConnectionParameters(string proxyServerAddress, string targetHost, int targetPort) : this()
+        public ConnectionParameters(string proxyServerAddress, string password)
         {
             ProxyServerAddress = proxyServerAddress;
-            TargetHost = targetHost;
-            TargetPort = targetPort;
+            Password = password;
         }
 
         public readonly string ProxyServerAddress;
-        public readonly string TargetHost;
-        public readonly int TargetPort;
+        public readonly string Password;
     }
 }

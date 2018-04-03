@@ -10,9 +10,9 @@ namespace WebSocketProxy
         static async Task<int> Main(string[] args)
         {
 
-            void PrintUsage() => Console.Error.WriteLine("Usage: dotnet ws-proxy.dll <proxy server> <target host> <target port>");
+            void PrintUsage() => Console.Error.WriteLine("Usage: dotnet ws-proxy.dll <proxy server> <password>");
 
-            if (args.Length != 3)
+            if (args.Length != 2)
             {
                 PrintUsage();
                 return -1;
@@ -21,15 +21,10 @@ namespace WebSocketProxy
             var loggerFactory = InitializeLogging();
             var logger = loggerFactory.CreateLogger<Program>();
 
-            var (proxyServer, targetHost, targetPort) = (args[0], args[1], args[2]);
-            if (!int.TryParse(targetPort, out var targetPortNumber) || targetPortNumber <= ushort.MinValue || targetPortNumber > ushort.MaxValue)
-            {
-                PrintUsage();
-                return -1;
-            }
+            var (proxyServer, password) = (args[0], args[1]);
 
-            var parameters = new ConnectionParameters(proxyServer, targetHost, targetPortNumber);
-            logger.LogDebug("Parsed connection parameters: server = {0}, host = {1}, port = {2}", parameters.ProxyServerAddress, parameters.TargetHost, parameters.TargetPort);
+            var parameters = new ConnectionParameters(proxyServer, password);
+            logger.LogDebug("Parsed connection parameters: server = {0}, password = {1}", parameters.ProxyServerAddress, new string('*', password.Length));
 
             try
             {
