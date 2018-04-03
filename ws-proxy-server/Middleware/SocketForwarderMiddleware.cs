@@ -40,7 +40,7 @@ namespace WebSocketProxy.Server
 
             var password = context.Request.GetAuthorizationPassword();
 
-            if (!string.Equals(password, expectedPassword, StringComparison.Ordinal))
+            if (StringExtensions.SlowEquals(password, expectedPassword))
             {
                 context.Response.Headers["Www-Authenticate"] = "Password realm=\"ws-proxy\"";
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
