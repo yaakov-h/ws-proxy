@@ -84,7 +84,7 @@ namespace WebSocketProxy.Server
                 read = await sock.ReceiveAsync(readSegment, SocketFlags.None).ConfigureAwait(false);
                 if (read > 0)
                 {
-                    logger.LogDebug("Read {0} bytes from TCP socket.", read);
+                    logger.LogTrace("Read {0} bytes from TCP socket.", read);
                     await ws.SendAsync(new ArraySegment<byte>(buffer, 0, read), WebSocketMessageType.Binary, false, default);
                 }
             }
@@ -102,7 +102,7 @@ namespace WebSocketProxy.Server
                 result = await ws.ReceiveAsync(readSegment, default).ConfigureAwait(false);
                 if (result.CloseStatus == null && result.Count > 0 && result.MessageType == WebSocketMessageType.Binary)
                 {
-                    logger.LogDebug("Read {0} bytes from websocket.", result.Count);
+                    logger.LogTrace("Read {0} bytes from websocket.", result.Count);
                     await sock.SendAsync(new ArraySegment<byte>(buffer, 0, result.Count), SocketFlags.None);
                 }
             }

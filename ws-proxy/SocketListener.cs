@@ -15,11 +15,13 @@ namespace WebSocketProxy
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
             this.parameters = parameters;
+            this.handlers = new ConcurrentDictionary<Guid,SocketHandler>();
         }
 
         readonly ILogger logger;
         readonly ILoggerFactory loggerFactory;
         readonly ConnectionParameters parameters;
+        readonly ConcurrentDictionary<Guid, SocketHandler> handlers;
 
         public async Task ListenAsync(CancellationToken cancellationToken)
         {
@@ -27,29 +29,50 @@ namespace WebSocketProxy
             sock.Bind(new IPEndPoint(IPAddress.Loopback, 0));
             sock.Listen(50);
 
-            var handlers = new ConcurrentDictionary<SocketHandler, object>();
+            cancellationToken.Register(sock.Close);
 
             logger.LogInformation("Listening on {0}", sock.LocalEndPoint);
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                var socket = await sock.AcceptTaskAsync().ConfigureAwait(false);
-                var handler = new SocketHandler(loggerFactory.CreateLogger<SocketHandler>(), parameters, socket);
-                logger.LogTrace("Accepted new socket {0} => {1} for handler {2}", socket.RemoteEndPoint, socket.LocalEndPoint, handler.Identifier);
-
-                handlers.TryAdd(handler, null);
-                var task = handler.HandleAsync(cancellationToken);
-                _ = task.ContinueWith(t =>
+                Socket socket = default;
+                try
                 {
-                    logger.LogDebug("Removing handler {0}", handler.Identifier);
-                    handlers.TryRemove(handler, out _);
-                });
+                    socket = await sock.AcceptTaskAsync().ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
+                {
+                }
+
+                if (socket != null)
+                {
+                    var handler = new SocketHandler(loggerFactory.CreateLogger<SocketHandler>(), parameters, socket);
+                    logger.LogDebug("Accepted new socket {0} => {1} for handler {2}", socket.RemoteEndPoint, socket.LocalEndPoint, handler.Identifier);
+
+                    handlers[handler.Identifier] = handler;
+                    var task = handler.HandleAsync(cancellationToken);
+                    _ = task.ContinueWith(t => FinishConnection(handler.Identifier, t));
+                }
             }
 
             while (!handlers.IsEmpty)
             {
                 logger.LogDebug("Waiting for all handlers to clean up. {0} remaining...", handlers.Count);
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                await Task.Delay(TimeSpan.FromMilliseconds(10));
+            }
+        }
+
+        void FinishConnection(Guid identifier, Task task)
+        {
+            logger.LogTrace("Removing handler {0}", identifier);
+            if (!handlers.TryRemove(identifier, out _))
+            {
+                logger.LogWarning("Handler {0} already removed.", identifier);
+            }
+
+            if (task.IsFaulted)
+            {
+                logger.LogError(task.Exception, "Unhandled exception in handler {0}", identifier);
             }
         }
     }

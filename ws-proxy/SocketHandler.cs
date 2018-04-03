@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Threading;
@@ -28,8 +29,10 @@ namespace WebSocketProxy
             using (socket)
             using (var ws = new ClientWebSocket())
             {
+                cancellationToken.Register(socket.Close);
+
                 ws.Options.SetRequestHeader("WS-Proxy-Target-Host", parameters.TargetHost);
-                ws.Options.SetRequestHeader("WS-Proxy-Target-Port", parameters.TargetHost);
+                ws.Options.SetRequestHeader("WS-Proxy-Target-Port", parameters.TargetPort.ToString(CultureInfo.InvariantCulture));
 
                 logger.LogTrace("Connecting to {0}", parameters.ProxyServerAddress);
 
@@ -53,9 +56,13 @@ namespace WebSocketProxy
             do
             {
                 read = await sock.ReceiveAsync(readSegment, SocketFlags.None).ConfigureAwait(false);
-                if (read > 0)
+                if (read <= 0)
                 {
-                    logger.LogDebug("Read {0} bytes from TCP socket.", read);
+                    logger.LogTrace("Read {0} bytes from TCP socket - connection closed.", read);
+                }
+                else
+                {
+                    logger.LogTrace("Read {0} bytes from TCP socket.", read);
                     await ws.SendAsync(new ArraySegment<byte>(buffer, 0, read), WebSocketMessageType.Binary, false, default);
                 }
             }
@@ -71,9 +78,21 @@ namespace WebSocketProxy
             do
             {
                 result = await ws.ReceiveAsync(readSegment, cancellationToken).ConfigureAwait(false);
-                if (result.CloseStatus == null && result.Count > 0 && result.MessageType == WebSocketMessageType.Binary)
+                if (result.CloseStatus != null)
                 {
-                    logger.LogDebug("Read {0} bytes from WebSocket.");
+                    logger.LogInformation("The server is closing the connection: {0} ({1})", result.CloseStatus, result.CloseStatusDescription);
+                }
+                else if (result.MessageType != WebSocketMessageType.Binary)
+                {
+                    logger.LogWarning("Recieved message type {0}", result.MessageType);
+                }
+                else if (result.Count <= 0)
+                {
+                    logger.LogTrace("Read {0} bytes from WebSocket - connection closing?", result.Count);
+                }
+                else
+                {
+                    logger.LogTrace("Read {0} bytes from WebSocket.", result.Count);
                     await sock.SendAsync(new ArraySegment<byte>(buffer, 0, result.Count), SocketFlags.None);
                 }
             }

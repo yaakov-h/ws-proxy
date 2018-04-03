@@ -51,7 +51,7 @@ namespace WebSocketProxy
         static ILoggerFactory InitializeLogging()
         {
             var loggerFactory = new LoggerFactory();
-            loggerFactory.AddConsole(LogLevel.Debug);
+            loggerFactory.AddConsole(LogLevel.Trace);
 
             return loggerFactory;
         }
