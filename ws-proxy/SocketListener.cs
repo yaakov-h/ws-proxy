@@ -8,14 +8,14 @@ using Microsoft.Extensions.Logging;
 
 namespace WebSocketProxy
 {
-    class SocketListener
+    sealed class SocketListener
     {
         public SocketListener(ILogger<SocketListener> logger, ILoggerFactory loggerFactory, ConnectionParameters parameters)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
             this.parameters = parameters;
-            this.handlers = new ConcurrentDictionary<Guid,SocketHandler>();
+            handlers = new ConcurrentDictionary<Guid,SocketHandler>();
         }
 
         readonly ILogger logger;
@@ -65,6 +65,7 @@ namespace WebSocketProxy
         void FinishConnection(Guid identifier, Task task)
         {
             logger.LogTrace("Removing handler {0}", identifier);
+
             if (!handlers.TryRemove(identifier, out _))
             {
                 logger.LogWarning("Handler {0} already removed.", identifier);

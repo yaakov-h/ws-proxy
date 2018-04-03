@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 
 namespace WebSocketProxy
 {
-
     class Program
     {
         static async Task<int> Main(string[] args)

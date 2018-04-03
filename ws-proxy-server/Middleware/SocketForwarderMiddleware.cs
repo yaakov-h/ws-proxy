@@ -10,9 +10,8 @@ using Microsoft.Extensions.Logging;
 
 namespace WebSocketProxy.Server
 {
-    class SocketForwarderMiddleware
+    sealed class SocketForwarderMiddleware
     {
-
         public SocketForwarderMiddleware(ILogger<SocketForwarderMiddleware> logger, IConfiguration configuration, RequestDelegate next)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -40,7 +39,8 @@ namespace WebSocketProxy.Server
             var expectedPassword = configuration["WsProxy:Password"]?.TrimEnd();
 
             var password = context.Request.GetAuthorizationPassword();
-            if (!string.Equals(password, expectedPassword, StringComparison.Ordinal))
+
+            if (StringExtensions.SlowEquals(password, expectedPassword))
             {
                 context.Response.Headers["Www-Authenticate"] = "Password realm=\"ws-proxy\"";
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
@@ -72,6 +72,7 @@ namespace WebSocketProxy.Server
             do
             {
                 read = await sock.ReceiveAsync(readSegment, SocketFlags.None).ConfigureAwait(false);
+
                 if (read > 0)
                 {
                     logger.LogTrace("Read {0} bytes from TCP socket.", read);
