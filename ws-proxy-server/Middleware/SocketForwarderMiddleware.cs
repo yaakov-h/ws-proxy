@@ -37,7 +37,7 @@ namespace WebSocketProxy.Server
 
             var targetHost = configuration["WsProxy:TargetHost"];
             var targetPort = int.Parse(configuration["WsProxy:TargetPort"]);
-            var expectedPassword = configuration["WsProxy:Password"];
+            var expectedPassword = configuration["WsProxy:Password"]?.TrimEnd();
 
             var password = context.Request.GetAuthorizationPassword();
             if (!string.Equals(password, expectedPassword, StringComparison.Ordinal))
