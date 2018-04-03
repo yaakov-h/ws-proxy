@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WebSocketProxy
 {
-    class SocketHandler
+    sealed class SocketHandler
     {
         public SocketHandler(ILogger<SocketHandler> logger, ConnectionParameters parameters, Socket socket)
         {

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WebSocketProxy
 {
-    class ConsoleExtensions
+    static class ConsoleExtensions
     {
         public static CancellationTokenSource CreateCancellationSourceFromKeyPress(ILogger logger)
         {

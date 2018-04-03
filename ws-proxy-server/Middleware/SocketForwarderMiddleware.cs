@@ -10,9 +10,8 @@ using Microsoft.Extensions.Logging;
 
 namespace WebSocketProxy.Server
 {
-    class SocketForwarderMiddleware
+    sealed class SocketForwarderMiddleware
     {
-
         public SocketForwarderMiddleware(ILogger<SocketForwarderMiddleware> logger, IConfiguration configuration, RequestDelegate next)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -40,6 +39,7 @@ namespace WebSocketProxy.Server
             var expectedPassword = configuration["WsProxy:Password"]?.TrimEnd();
 
             var password = context.Request.GetAuthorizationPassword();
+
             if (!string.Equals(password, expectedPassword, StringComparison.Ordinal))
             {
                 context.Response.Headers["Www-Authenticate"] = "Password realm=\"ws-proxy\"";
