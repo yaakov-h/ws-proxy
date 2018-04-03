@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 
-namespace ws_proxy_server
+namespace WebSocketProxy.Server
 {
     class SocketForwarderMiddleware
     {

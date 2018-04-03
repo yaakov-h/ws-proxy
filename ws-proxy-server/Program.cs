@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 
-namespace ws_proxy_server
+namespace WebSocketProxy.Server
 {
     public class Program
     {

@@ -2,7 +2,7 @@
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-namespace ws_proxy_server
+namespace WebSocketProxy.Server
 {
     static class SocketExtensions
     {

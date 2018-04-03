@@ -6,6 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
     <LangVersion>latest</LangVersion>
+    <RootNamespace>WebSocketProxy.Server</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

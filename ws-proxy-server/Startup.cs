@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ws_proxy_server
+namespace WebSocketProxy.Server
 {
     public class Startup
     {

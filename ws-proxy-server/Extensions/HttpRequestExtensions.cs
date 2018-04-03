@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace ws_proxy_server
+namespace WebSocketProxy.Server
 {
     static class HttpRequestExtensions
     {
