@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
@@ -36,12 +37,13 @@ namespace WebSocketProxy.Server
 
             var targetHost = configuration["WsProxy:TargetHost"];
             var targetPort = int.Parse(configuration["WsProxy:TargetPort"]);
-            var expectedPassword = configuration["WsProxy:Password"]?.TrimEnd();
+            var expectedPassword = configuration["WsProxy:Password"];
 
             var password = context.Request.GetAuthorizationPassword();
 
-            if (StringExtensions.SlowEquals(password, expectedPassword))
+            if (!StringExtensions.SlowEquals(password, expectedPassword))
             {
+                logger.LogDebug("Bad password from {0}:{1}", context.Connection.RemoteIpAddress, context.Connection.RemotePort);
                 context.Response.Headers["Www-Authenticate"] = "Password realm=\"ws-proxy\"";
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 return;
@@ -59,8 +61,17 @@ namespace WebSocketProxy.Server
             var uploadTask = CopyToAsync(sock, ws);
             var downloadTask = CopyToAsync(ws, sock);
 
-            await Task.WhenAll(uploadTask, downloadTask).ConfigureAwait(false);
+            await Task.WhenAny(uploadTask, downloadTask).ConfigureAwait(false);
 
+            try
+            {
+                await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Connection completed.", default).ConfigureAwait(false);
+            }
+            catch (Win32Exception)
+            {
+            }
+
+            await Task.WhenAll(uploadTask, downloadTask).ConfigureAwait(false);
         }
 
         async Task CopyToAsync(Socket sock, WebSocket ws)
